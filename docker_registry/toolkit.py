@@ -327,7 +327,8 @@ def exclusive_lock(f):
         try:
             result = f(*args, **kwargs)
         finally:
-            os.remove(lock_path)
+            if os.path.exists(lock_path):
+                os.remove(lock_path)
         return result
     return wrapper
 
