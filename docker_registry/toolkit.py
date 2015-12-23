@@ -11,6 +11,10 @@ import string
 import time
 import urllib
 
+#add by fightingdu
+import fcntl
+#end
+
 import flask
 from M2Crypto import RSA
 import requests
@@ -306,7 +310,7 @@ def parse_repository_name(f):
         return f(namespace=namespace, repository=repository, *args, **kwargs)
     return wrapper
 
-
+#add by fightingdu
 def exclusive_lock(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
@@ -314,21 +318,15 @@ def exclusive_lock(f):
             './', 'registry.{0}.lock'.format(f.func_name)
         )
         if os.path.exists(lock_path):
-            x = 0
-            while os.path.exists(lock_path) and x < 100:
-                logger.warn('Another process is creating the search database')
-                x += 1
-                time.sleep(1)
-            if x == 100:
-                raise Exception('Timedout waiting for db init')
             return
-        lock_file = open(lock_path, 'w')
-        lock_file.close()
+
+        lockfile=os.open(lock_path,os.O_RDONLY|os.O_CREAT,0777)
+        fcntl.flock(lockfile,fcntl.LOCK_EX)
         try:
             result = f(*args, **kwargs)
         finally:
-            if os.path.exists(lock_path):
-                os.remove(lock_path)
+            fcntl.flock(lockfile,fcntl.LOCK_UN)
+            os.close(lockfile)
         return result
     return wrapper
 
